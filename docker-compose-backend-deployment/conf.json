@@ -1,0 +1,5 @@
+{
+  "db_connection": "host=db port=5432 user=prodcontrol-master password=prodcontrol-master dbname=prodcontrol-master sslmode=disable",
+  "bind_address": ":9090",
+  "metrics_address": ":9103"
+}
