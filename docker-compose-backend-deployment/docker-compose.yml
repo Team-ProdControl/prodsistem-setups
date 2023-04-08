@@ -15,8 +15,6 @@ services:
       POSTGRES_DB: prodcontrol-master
   web:
     image: jlucasamorim/prodsistem-preview:latest
-    build:
-      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     networks:
