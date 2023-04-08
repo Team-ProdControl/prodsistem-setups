@@ -16,7 +16,7 @@ services:
   web:
     image: jlucasamorim/prodsistem-preview:latest
     ports:
-      - "3000:3000"
+      - "8080:3000"
     networks:
       - webnet
     environment:
