@@ -19,6 +19,7 @@ services:
       - "8080:8080"
     networks:
       - webnet
+    restart: always
     environment:
       DB_USER: prodcontrol-master
       DB_PASSWORD: prodcontrol-master
@@ -33,5 +34,15 @@ services:
     links:
       - db
       - redis
+  nginx:
+    build: ./nginx/
+    restart: always
+    networks:
+      - webnet
+    ports:
+      - "80:80"
+      - "443:443"
+    links:
+      - web:web
 networks:
   webnet:
