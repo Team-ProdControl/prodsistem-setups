@@ -16,7 +16,7 @@ services:
   web:
     image: jlucasamorim/prodsistem-preview:latest
     ports:
-      - "8080:8080"
+      - "3000:3000"
     networks:
       - webnet
     restart: always
@@ -39,6 +39,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    networks:
+      - webnet
     links:
       - web:web
 networks:
