@@ -1,0 +1,9 @@
+FROM nginx:stable-alpine
+
+EXPOSE 80 443
+
+COPY nginx.conf /etc/nginx/nginx.conf
+
+RUN mkdir -p /opt/app/public/
+
+COPY error.html /opt/app/public/error.html
