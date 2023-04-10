@@ -3,12 +3,8 @@ version: '3.8'
 services:
   redis:
     image: redis:6.2-alpine
-    networks:
-      - webnet
   db:
     image: postgres
-    networks:
-      - webnet
     environment:
       POSTGRES_PASSWORD: prodcontrol-master
       POSTGRES_USER: prodcontrol-master
@@ -16,9 +12,7 @@ services:
   web:
     image: jlucasamorim/prodsistem-preview:latest
     ports:
-      - "3000:3000"
-    networks:
-      - webnet
+      - "8080:8080"
     restart: always
     environment:
       DB_USER: prodcontrol-master
@@ -30,18 +24,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASS:
       NODE_ENV: production
+      PORT: 8080
     links:
       - db
       - redis
-  nginx:
-    build: ./nginx/
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    networks:
-      - webnet
-    links:
-      - web:web
-networks:
-  webnet:
