@@ -23,6 +23,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASS:
+      AWS_S3_REGION: us-east-2
+      AWS_S3_BUCKET: prodcontrol-images-bucket
+      AWS_S3_ACCESS_KEY_ID: "non-key-passed"
+      AWS_S3_SECRET_KEY:  "non-key-passed"
       NODE_ENV: production
       PORT: 8080
     links:
