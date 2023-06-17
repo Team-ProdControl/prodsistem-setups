@@ -28,6 +28,7 @@ services:
       AWS_S3_ACCESS_KEY_ID: "non-key-passed"
       AWS_S3_SECRET_KEY:  "non-key-passed"
       NODE_ENV: production
+      APP_ENV: dev
       PORT: 8080
     links:
       - db
