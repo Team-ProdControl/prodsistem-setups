@@ -1,0 +1,17 @@
+version: '3.3'
+
+services:
+  redis:
+    image: redis:6.2-alpine
+  web:
+    image: jlucasamorim/prodsistem-staging:latest
+    ports:
+      - "8080:8080"
+    restart: always
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NODE_ENV: production
+      PORT: 8080
+    links:
+      - redis
