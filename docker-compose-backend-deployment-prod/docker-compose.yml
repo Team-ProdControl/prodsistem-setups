@@ -3,15 +3,11 @@ version: '3.3'
 services:
   redis:
     # Adjust the build context to your needs targetting the created Dockerfile
-    build:
-      context: ./../dockerfiles/redis
-      dockerfile: Dockerfile
-    image: redis:7.2-alpine
+    container_name: redis
+    image: redis:alpine
     restart: always
     ports:
       - 6379:6379
-    # Run the init script
-    command: sh -c "./init.sh"
     # Run as privileged to allow the container to change the vm.overcommit_memory setting
     privileged: true
     volumes:
@@ -24,6 +20,7 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      AWS_REGION: us-east-2
       NODE_ENV: production
       PORT: 8080
     links:
