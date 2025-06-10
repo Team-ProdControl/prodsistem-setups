@@ -2,19 +2,16 @@ version: '3.3'
 
 services:
   redis:
+    # Adjust the build context to your needs targetting the created Dockerfile
+    container_name: redis
     image: redis:alpine
-    container_name: prodcontrol-staging-redis
     restart: always
     ports:
-      - "6379:6379"
+      - 6379:6379
+    # Run as privileged to allow the container to change the vm.overcommit_memory setting
     privileged: true
     volumes:
-      - ./docker/data/redis-staging:/data
-    networks:
-      - prodcontrol-staging-network
-    # Only start if REDIS_HOST is not set or is 'redis'
-    profiles:
-      - local-redis
+      - ./docker/data/redis:/data
   web:
     image: jlucasamorim/prodsistem-staging:latest
     ports:
@@ -28,10 +25,3 @@ services:
       PORT: 8080
     links:
       - redis
-    # Network configuration
-    networks:
-      - prodcontrol-staging-network
-
-networks:
-  prodcontrol-staging-network:
-    driver: bridge 
