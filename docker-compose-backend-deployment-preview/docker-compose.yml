@@ -12,34 +12,17 @@ services:
     privileged: true
     volumes:
       - ./docker/data/redis:/data
-  db:
-    image: postgres
-    environment:
-      POSTGRES_PASSWORD: prodcontrol-master
-      POSTGRES_USER: prodcontrol-master
-      POSTGRES_DB: prodcontrol-master
+
   web:
     image: jlucasamorim/prodsistem-preview:latest
     ports:
       - "8080:8080"
     restart: always
     environment:
-      DB_USER: prodcontrol-master
-      DB_PASSWORD: prodcontrol-master
-      DB_HOST: db
-      DB_PORT: 5432
-      DB: prodcontrol-master
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASS:
       AWS_REGION: us-east-2
-      AWS_S3_REGION: us-east-2
-      AWS_S3_BUCKET: prodcontrol-images-bucket
-      AWS_S3_ACCESS_KEY_ID: "non-key-passed"
-      AWS_S3_SECRET_KEY:  "non-key-passed"
       NODE_ENV: production
-      APP_ENV: dev
       PORT: 8080
     links:
-      - db
       - redis
