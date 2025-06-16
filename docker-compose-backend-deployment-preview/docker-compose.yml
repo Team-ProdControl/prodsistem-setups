@@ -40,8 +40,13 @@ services:
       MAX_CLIENT_CONN: 2000   # Maximum client connections
       MAX_DB_CONNECTIONS: 100 # Maximum database connections total
       
-      # Timeouts - more permissive for migrations
+      # Migration-friendly settings
       SERVER_RESET_QUERY: ""  # Don't reset session state
+      SERVER_RESET_QUERY_ALWAYS: 0  # Never send reset queries
+      IGNORE_STARTUP_PARAMETERS: "extra_float_digits,search_path"
+      APPLICATION_NAME_ADD_HOST: 1  # Help track connections
+      
+      # Timeouts - more permissive for migrations
       SERVER_CHECK_DELAY: 30
       SERVER_CHECK_QUERY: select 1
       SERVER_LIFETIME: 3600   # 1 hour connection lifetime
@@ -63,6 +68,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # Migration service - runs once then exits
+  migrations:
+    image: jlucasamorim/prodsistem-preview:latest
+    restart: "no"  # Run once and exit
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}  # Connect directly to database for migrations
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB: ${DB}
+      RUN_MIGRATIONS_ONLY: "true"  # Flag to only run migrations
+    command: ["sh", "-c", "echo 'Running migrations...' && npm run migrate && echo 'Migrations completed'"]
+
   web:
     image: jlucasamorim/prodsistem-preview:latest
     ports:
@@ -76,7 +96,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8080
+      SKIP_MIGRATIONS: "true"  # Skip migrations in main app
     depends_on:
+      migrations:
+        condition: service_completed_successfully
       pgbouncer:
         condition: service_healthy 
       redis:
