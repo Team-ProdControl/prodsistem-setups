@@ -2,18 +2,35 @@ version: '3.3'
 
 services:
   redis:
-    # Adjust the build context to your needs targetting the created Dockerfile
     container_name: redis
     image: redis:alpine
     restart: always
     ports:
-      - 6379:6379
-    # Run as privileged to allow the container to change the vm.overcommit_memory setting
+      - "6379:6379"
     privileged: true
     volumes:
       - ./docker/data/redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # This is your PostgreSQL database.
+  # Make sure this service is running. If it's not defined, you'll need to add it.
+  # I am assuming it's named 'prodcontrol-master' based on your previous files.
+  prodcontrol-master:
+    container_name: prodcontrol-master
+    image: postgres
+    env_file:
+      - .env # Ensure your .env file has POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,45 +41,51 @@ services:
     env_file:
       - .env
     environment:
-      # Database connections (replace with your actual values)
-      DATABASES_HOST: ${DB_HOST}
-      DATABASES_PORT: ${DB_PORT}
-      DATABASES_USER: ${DB_USER}
-      DATABASES_PASSWORD: ${DB_PASSWORD}
-      DATABASES_DBNAME: ${DB}
+      # These variables point to your actual database service
+      DATABASES_HOST: prodcontrol-master
+      DATABASES_PORT: 5432
+      DATABASES_USER: ${POSTGRES_USER}
+      DATABASES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASES_DBNAME: ${POSTGRES_DB}
       
-      # PgBouncer Configuration - optimized for high concurrency
-      POOL_MODE: transaction  # Most efficient for microservices
-      DEFAULT_POOL_SIZE: 50   # Connections per database pool
-      MIN_POOL_SIZE: 10       # Minimum connections kept open
-      RESERVE_POOL_SIZE: 5    # Emergency connections
-      RESERVE_POOL_TIMEOUT: 3 # Seconds to wait for reserve pool
-      MAX_CLIENT_CONN: 2000   # Maximum client connections
-      MAX_DB_CONNECTIONS: 100 # Maximum database connections total
-      
-      # Timeouts - aggressive for fast failure
+      # Configuration for PgBouncer
+      POOL_MODE: transaction  # Use 'transaction' for best compatibility with TypeORM
+      DEFAULT_POOL_SIZE: 50
+      MIN_POOL_SIZE: 10
+      RESERVE_POOL_SIZE: 5
+      MAX_CLIENT_CONN: 2000
+      MAX_DB_CONNECTIONS: 100
       SERVER_RESET_QUERY: DISCARD ALL
-      SERVER_CHECK_DELAY: 30
-      SERVER_CHECK_QUERY: select 1
-      SERVER_LIFETIME: 3600   # 1 hour connection lifetime
-      SERVER_IDLE_TIMEOUT: 600 # 10 minutes idle timeout
-      QUERY_TIMEOUT: 10       # 10 seconds query timeout
-      CLIENT_IDLE_TIMEOUT: 120 # 2 minutes client idle timeout
-      
-      # Logging
-      LOG_CONNECTIONS: 1
-      LOG_DISCONNECTIONS: 1
-      LOG_POOLER_ERRORS: 1
-      
     ports:
-      - "6432:5432"  # PgBouncer port
+      - "6432:6432" # Exposing PgBouncer on its standard internal port
     restart: unless-stopped
+    depends_on:
+      prodcontrol-master:
+        condition: service_healthy
     healthcheck:
+      # This test now correctly targets the internal pgbouncer port
       test: ["CMD-SHELL", "nc -z localhost 6432"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # 1. NEW MIGRATION SERVICE
+  # This container starts, runs the migration, and then exits.
+  migration:
+    image: jlucasamorim/prodsistem-preview:latest
+    env_file:
+      - .env
+    environment:
+      # CRITICAL: This service connects DIRECTLY to the real database, NOT pgbouncer.
+      DB_HOST: prodcontrol-master
+      DB_PORT: 5432
+    # We override the image's default CMD to ONLY run migrations.
+    command: ["yarn", "client:migration:run"]
+    depends_on:
+      prodcontrol-master:
+        condition: service_healthy
+
+  # 2. YOUR WEB SERVICE (MODIFIED)
   web:
     image: jlucasamorim/prodsistem-preview:latest
     ports:
@@ -71,10 +94,19 @@ services:
     env_file:
       - .env
     environment:
+      # This service connects to pgbouncer for normal runtime operation.
+      DB_HOST: pgbouncer
+      DB_PORT: 6432 # The port specified in the pgbouncer service
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8080
+    # CRITICAL: We override the image's default CMD to ONLY start the server.
+    # This prevents the hidden migration command from running here.
+    command: ["node", "build/server.js"]
     depends_on:
+      migration:
+        # This ensures the web service only starts after the migration container has finished successfully.
+        condition: service_completed_successfully
       pgbouncer:
         condition: service_healthy 
       redis:
