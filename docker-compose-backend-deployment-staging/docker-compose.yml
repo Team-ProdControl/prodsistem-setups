@@ -25,11 +25,7 @@ services:
       - .env
     environment:
       # Database connections (replace with your actual values)
-      DATABASES_HOST: ${DB_HOST}
-      DATABASES_PORT: ${DB_PORT}
-      DATABASES_USER: ${DB_USER}
-      DATABASES_PASSWORD: ${DB_PASSWORD}
-      DATABASES_DBNAME: ${DB}
+      DATABASES: "* = host=${DB_HOST} port=${DB_PORT} user=${DB_USER} password=${DB_PASSWORD}"
       
       # PgBouncer Configuration - optimized for high concurrency
       POOL_MODE: transaction  # Most efficient for microservices
