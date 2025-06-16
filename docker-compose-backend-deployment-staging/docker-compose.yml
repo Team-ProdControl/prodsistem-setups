@@ -32,7 +32,7 @@ services:
       DATABASES_DBNAME: ${DB}
       
       # PgBouncer Configuration - optimized for high concurrency
-      POOL_MODE: session  # Most efficient for microservices
+      POOL_MODE: transaction  # Most efficient for microservices
       DEFAULT_POOL_SIZE: 50   # Connections per database pool
       MIN_POOL_SIZE: 10       # Minimum connections kept open
       RESERVE_POOL_SIZE: 5    # Emergency connections
