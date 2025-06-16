@@ -81,7 +81,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB: ${DB}
       RUN_MIGRATIONS_ONLY: "true"  # Flag to only run migrations
-    command: ["sh", "-c", "echo 'Running migrations...' && npm run migrate && echo 'Migrations completed'"]
+    command: ["sh", "-c", "echo 'Running migrations...' && npm run client:migration:run && echo 'Migrations completed'"]
 
   web:
     image: jlucasamorim/prodsistem-preview:latest
