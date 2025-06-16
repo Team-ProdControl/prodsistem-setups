@@ -40,10 +40,10 @@ services:
       MAX_CLIENT_CONN: 2000   # Maximum client connections
       MAX_DB_CONNECTIONS: 100 # Maximum database connections total
       
-      # Migration-friendly settings
+      # Multi-tenant SAAS friendly settings
       SERVER_RESET_QUERY: ""  # Don't reset session state
       SERVER_RESET_QUERY_ALWAYS: 0  # Never send reset queries
-      IGNORE_STARTUP_PARAMETERS: "extra_float_digits,search_path"
+      IGNORE_STARTUP_PARAMETERS: "extra_float_digits,search_path,application_name"
       APPLICATION_NAME_ADD_HOST: 1  # Help track connections
       
       # Timeouts - more permissive for migrations
@@ -54,12 +54,12 @@ services:
       QUERY_TIMEOUT: 300      # 5 minutes for complex migration queries
       CLIENT_IDLE_TIMEOUT: 120 # 2 minutes client idle timeout
       
-      # Enhanced logging for debugging
-      LOG_CONNECTIONS: 1
-      LOG_DISCONNECTIONS: 1
+      # Logging
+      LOG_CONNECTIONS: 0
+      LOG_DISCONNECTIONS: 0
       LOG_POOLER_ERRORS: 1
-      LOG_STATS: 1
-      VERBOSE: 2  # Maximum verbosity for debugging
+      LOG_STATS: 0
+      VERBOSE: 0
       
     ports:
       - "6432:5432"  # PgBouncer port
