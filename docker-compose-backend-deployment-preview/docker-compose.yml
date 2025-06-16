@@ -54,10 +54,12 @@ services:
       QUERY_TIMEOUT: 300      # 5 minutes for complex migration queries
       CLIENT_IDLE_TIMEOUT: 120 # 2 minutes client idle timeout
       
-      # Logging
+      # Enhanced logging for debugging
       LOG_CONNECTIONS: 1
       LOG_DISCONNECTIONS: 1
       LOG_POOLER_ERRORS: 1
+      LOG_STATS: 1
+      VERBOSE: 2  # Maximum verbosity for debugging
       
     ports:
       - "6432:5432"  # PgBouncer port
@@ -67,21 +69,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # Migration service - runs once then exits
-  migrations:
-    image: jlucasamorim/prodsistem-preview:latest
-    restart: "no"  # Run once and exit
-    env_file:
-      - .env
-    environment:
-      DB_HOST: ${DB_HOST}  # Connect directly to database for migrations
-      DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB: ${DB}
-      RUN_MIGRATIONS_ONLY: "true"  # Flag to only run migrations
-    command: ["sh", "-c", "echo 'Running migrations...' && npm run client:migration:run && echo 'Migrations completed'"]
 
   web:
     image: jlucasamorim/prodsistem-preview:latest
@@ -96,10 +83,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8080
-      SKIP_MIGRATIONS: "true"  # Skip migrations in main app
     depends_on:
-      migrations:
-        condition: service_completed_successfully
       pgbouncer:
         condition: service_healthy 
       redis:
