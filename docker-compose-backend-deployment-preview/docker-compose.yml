@@ -24,42 +24,40 @@ services:
     env_file:
       - .env
     environment:
-      # Database connections (replace with your actual values)
+      # Multi-tenant database configuration - wildcard allows any database
       DATABASES_HOST: ${DB_HOST}
       DATABASES_PORT: ${DB_PORT}
       DATABASES_USER: ${DB_USER}
       DATABASES_PASSWORD: ${DB_PASSWORD}
-      DATABASES_DBNAME: ${DB}
+      DATABASES_DBNAME: "*"  # Wildcard allows dynamic database switching
       
-      # PgBouncer Configuration - optimized for migrations and high concurrency
-      POOL_MODE: session      # Required for migrations - maintains session state
-      DEFAULT_POOL_SIZE: 50   # Connections per database pool
-      MIN_POOL_SIZE: 10       # Minimum connections kept open
-      RESERVE_POOL_SIZE: 5    # Emergency connections
-      RESERVE_POOL_TIMEOUT: 3 # Seconds to wait for reserve pool
-      MAX_CLIENT_CONN: 2000   # Maximum client connections
-      MAX_DB_CONNECTIONS: 100 # Maximum database connections total
+      # SAAS-optimized pool configuration
+      POOL_MODE: session
+      DEFAULT_POOL_SIZE: 10   # Smaller pools per database
+      MIN_POOL_SIZE: 2        # Minimum connections per database
+      RESERVE_POOL_SIZE: 2
+      RESERVE_POOL_TIMEOUT: 3
+      MAX_CLIENT_CONN: 1000
+      MAX_DB_CONNECTIONS: 50  # Total across all databases
       
-      # Multi-tenant SAAS friendly settings
-      SERVER_RESET_QUERY: ""  # Don't reset session state
-      SERVER_RESET_QUERY_ALWAYS: 0  # Never send reset queries
+      # Multi-tenant friendly settings
+      SERVER_RESET_QUERY: ""
+      SERVER_RESET_QUERY_ALWAYS: 0
       IGNORE_STARTUP_PARAMETERS: "extra_float_digits,search_path,application_name"
-      APPLICATION_NAME_ADD_HOST: 1  # Help track connections
+      APPLICATION_NAME_ADD_HOST: 1
       
-      # Timeouts - more permissive for migrations
+      # Timeouts
       SERVER_CHECK_DELAY: 30
-      SERVER_CHECK_QUERY: select 1
-      SERVER_LIFETIME: 3600   # 1 hour connection lifetime
-      SERVER_IDLE_TIMEOUT: 600 # 10 minutes idle timeout
-      QUERY_TIMEOUT: 300      # 5 minutes for complex migration queries
-      CLIENT_IDLE_TIMEOUT: 120 # 2 minutes client idle timeout
+      SERVER_CHECK_QUERY: "select 1"
+      SERVER_LIFETIME: 3600
+      SERVER_IDLE_TIMEOUT: 600
+      QUERY_TIMEOUT: 300
+      CLIENT_IDLE_TIMEOUT: 120
       
-      # Logging
+      # Minimal logging
       LOG_CONNECTIONS: 0
       LOG_DISCONNECTIONS: 0
       LOG_POOLER_ERRORS: 1
-      LOG_STATS: 0
-      VERBOSE: 0
       
     ports:
       - "6432:5432"  # PgBouncer port
