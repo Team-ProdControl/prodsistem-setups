@@ -71,8 +71,6 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: pgbouncer
-      DB_PORT: 6432
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8080
