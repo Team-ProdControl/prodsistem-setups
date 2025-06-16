@@ -12,6 +12,11 @@ services:
     privileged: true
     volumes:
       - ./docker/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pgbouncer:
     image: pgbouncer/pgbouncer:latest
