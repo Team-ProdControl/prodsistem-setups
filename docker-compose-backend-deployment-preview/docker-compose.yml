@@ -24,7 +24,7 @@ services:
     env_file:
       - .env
     environment:
-      # Database connections (replace with your actual values)
+      # Database connections - pgbouncer should connect to actual DB server
       DATABASES: "* = host=${DB_HOST} port=${DB_PORT} user=${DB_USER} password=${DB_PASSWORD}"
       
       # PgBouncer Configuration - optimized for high concurrency
@@ -45,6 +45,9 @@ services:
       QUERY_TIMEOUT: 10       # 10 seconds query timeout
       CLIENT_IDLE_TIMEOUT: 120 # 2 minutes client idle timeout
       
+      # Ignore startup parameters that applications might send  
+      PGBOUNCER_IGNORE_STARTUP_PARAMETERS: "statement_timeout,lock_timeout,idle_in_transaction_session_timeout"
+      
       # Logging
       LOG_CONNECTIONS: 1
       LOG_DISCONNECTIONS: 1
@@ -54,10 +57,11 @@ services:
       - "6432:5432"  # PgBouncer port
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 6432"]
+      test: ["CMD-SHELL", "nc -z localhost 6432 && sleep 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   web:
     image: 665539166950.dkr.ecr.us-east-2.amazonaws.com/prodcontrol-preview:pr-<pr_number>
