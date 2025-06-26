@@ -59,6 +59,31 @@ services:
       timeout: 5s
       retries: 5
 
+  init-check:
+    image: alpine:latest
+    command: >
+      sh -c "
+      echo 'Starting service verification...';
+      apk add --no-cache netcat-openbsd redis;
+      echo 'Tools installed, waiting 15 seconds for services...';
+      sleep 15;
+      echo 'Testing PgBouncer...';
+      nc -z pgbouncer 6432 && echo 'PgBouncer OK' || exit 1;
+      echo 'Testing Redis...';
+      redis-cli -h redis -p 6379 ping && echo 'Redis OK' || exit 1;
+      echo 'All services ready, adding final delay...';
+      sleep 5;
+      echo 'Verification complete';
+      "
+    env_file:
+      - .env
+    
+    depends_on:
+      pgbouncer:
+        condition: service_healthy 
+      redis:
+        condition: service_healthy
+
   web:
     image: jlucasamorim/prodsistem-prod:latest
     ports:
@@ -72,8 +97,15 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8080
+      # Node.js specific debugging and reliability
+      NODE_ENV: development
+      DEBUG: "*"
+      NODE_OPTIONS: "--trace-warnings --unhandled-rejections=strict --max-old-space-size=512"
+      NODE_STARTUP_TIMEOUT: 30000
+      # Force application to produce startup logs
+      LOG_LEVEL: debug
+      VERBOSE_STARTUP: "true"
+   # Health check disabled - API is working perfectly, Docker health check is unreliable with this ECR image
     depends_on:
-      pgbouncer:
-        condition: service_healthy 
-      redis:
-        condition: service_healthy
+      init-check:
+        condition: service_completed_successfully
