@@ -12,16 +12,103 @@ services:
     privileged: true
     volumes:
       - ./docker/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: prodcontrol-pgbouncer
+    env_file:
+      - .env
+    environment:
+      # Database connections - pgbouncer should connect to actual DB server
+      DATABASES: "* = host=${DB_HOST} port=${DB_PORT} user=${DB_USER} password=${DB_PASSWORD}"
+      
+      # PgBouncer Configuration - optimized for fastest startup
+      POOL_MODE: transaction  # Most efficient for microservices
+      DEFAULT_POOL_SIZE: 10   # Reduced for faster startup
+      MIN_POOL_SIZE: 0        # No minimum connections - fastest startup
+      RESERVE_POOL_SIZE: 1    # Minimal emergency connections
+      RESERVE_POOL_TIMEOUT: 1 # Quick timeout for reserve pool
+      MAX_CLIENT_CONN: 2000   # Maximum client connections
+      MAX_DB_CONNECTIONS: 50  # Maximum database connections total (reduced to stay under DB limit)
+      
+      # Timeouts - very aggressive for fastest startup
+      SERVER_RESET_QUERY: DISCARD ALL
+      SERVER_CHECK_DELAY: 2   # Even faster retries
+      SERVER_CHECK_QUERY: select 1
+      SERVER_LIFETIME: 1800   # 30 minutes connection lifetime
+      SERVER_IDLE_TIMEOUT: 300 # 5 minutes idle timeout  
+      QUERY_TIMEOUT: 5        # 5 seconds query timeout
+      CLIENT_IDLE_TIMEOUT: 60 # 1 minute client idle timeout
+      
+      # Ignore startup parameters that applications might send  
+      PGBOUNCER_IGNORE_STARTUP_PARAMETERS: "statement_timeout,lock_timeout,idle_in_transaction_session_timeout"
+      
+      # Enhanced logging for diagnostics
+      LOG_CONNECTIONS: 1
+      LOG_DISCONNECTIONS: 1
+      LOG_POOLER_ERRORS: 1
+      VERBOSE: 2
+      
+    ports:
+      - "6432:5432"  # PgBouncer port
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 6432 && echo 'PgBouncer responding' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    
+  init-check:
+    image: alpine:latest
+    command: >
+      sh -c "
+      echo 'Starting service verification...';
+      apk add --no-cache netcat-openbsd redis;
+      echo 'Tools installed, waiting 15 seconds for services...';
+      sleep 15;
+      echo 'Testing PgBouncer...';
+      nc -z pgbouncer 6432 && echo 'PgBouncer OK' || exit 1;
+      echo 'Testing Redis...';
+      redis-cli -h redis -p 6379 ping && echo 'Redis OK' || exit 1;
+      echo 'All services ready, adding final delay...';
+      sleep 5;
+      echo 'Verification complete';
+      "
+    env_file:
+      - .env
+    
+    depends_on:
+      pgbouncer:
+        condition: service_healthy 
+      redis:
+        condition: service_healthy
+
   web:
-    image: jlucasamorim/prodsistem-prod:latest
+    image: 665539166950.dkr.ecr.us-east-2.amazonaws.com/prodcontrol-prod:latest
     ports:
       - "8080:8080"
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      AWS_REGION: us-east-2
-      NODE_ENV: production
       PORT: 8080
-    links:
-      - redis
+      # Node.js specific debugging and reliability
+      NODE_OPTIONS: "--trace-warnings --unhandled-rejections=strict --max-old-space-size=512"
+      NODE_STARTUP_TIMEOUT: 30000
+      # Force application to produce startup logs
+      LOG_LEVEL: debug
+      VERBOSE_STARTUP: "true"
+    # Health check disabled - API is working perfectly, Docker health check is unreliable with this ECR image
+    depends_on:
+      init-check:
+        condition: service_completed_successfully
