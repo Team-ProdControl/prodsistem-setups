@@ -58,7 +58,7 @@ services:
       - "6432:5432"  # PgBouncer port
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 6432 && echo 'PgBouncer responding' || exit 1"]
+      test: ["CMD-SHELL", "/usr/bin/nc -z 127.0.0.1 6432 || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 20
