@@ -23,8 +23,10 @@ services:
       - --providers.swarm.exposedbydefault=false
       - --providers.swarm.network=prodcontrol_internal
       - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      # A porta 80 recebe o tráfego do ALB (que já fez o HTTPS e o redirecionamento).
+      # Confia no X-Forwarded-For só quando vem de dentro da VPC (ALB),
+      # para a API enxergar o IP real do usuário (rate limit por IP).
+      - --entrypoints.web.forwardedHeaders.trustedIPs=10.0.0.0/16
       - --entrypoints.websecure.address=:443
       - --certificatesresolvers.le.acme.email=${ACME_EMAIL:?defina ACME_EMAIL}
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
@@ -108,6 +110,16 @@ services:
         - traefik.http.routers.api.rule=${TRAEFIK_HOST_RULE:?defina TRAEFIK_HOST_RULE}
         - traefik.http.routers.api.entrypoints=websecure
         - traefik.http.routers.api.tls.certresolver=le
+        - traefik.http.routers.api.service=api
+        # Tráfego vindo do ALB (HTTP na porta 80, dentro da VPC)
+        - traefik.http.routers.api-alb.rule=${TRAEFIK_HOST_RULE}
+        - traefik.http.routers.api-alb.entrypoints=web
+        - traefik.http.routers.api-alb.service=api
+        # Health check do ALB: chega com o IP da instância no Host, então casa só pelo caminho
+        - "traefik.http.routers.health-alb.rule=Path(`/api/health`)"
+        - traefik.http.routers.health-alb.entrypoints=web
+        - traefik.http.routers.health-alb.priority=1
+        - traefik.http.routers.health-alb.service=api
         - traefik.http.services.api.loadbalancer.server.port=8080
         - traefik.http.services.api.loadbalancer.healthcheck.path=/api/health
         - traefik.http.services.api.loadbalancer.healthcheck.interval=15s
