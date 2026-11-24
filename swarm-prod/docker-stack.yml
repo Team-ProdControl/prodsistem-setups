@@ -82,7 +82,7 @@ services:
       REDIS_PORT: "6379"
       REDIS_DB: "0"
       PORT: "8080"
-      NODE_OPTIONS: "--trace-warnings --unhandled-rejections=strict --max-old-space-size=512"
+      NODE_OPTIONS: "--trace-warnings --unhandled-rejections=strict --max-old-space-size=1024"
       NODE_STARTUP_TIMEOUT: "30000"
       # Mesmo valor do compose atual; avaliar trocar para "info" depois da virada
       LOG_LEVEL: debug
@@ -111,7 +111,7 @@ services:
         delay: 5s
       resources:
         limits:
-          memory: 768M
+          memory: 1536M
       labels:
         - traefik.enable=true
         - traefik.http.routers.api.rule=${TRAEFIK_HOST_RULE:?defina TRAEFIK_HOST_RULE}
